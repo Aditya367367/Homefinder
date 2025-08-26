@@ -3,7 +3,7 @@ services:
     name: django-web
     env: python
     plan: free
-    rootDir: backend     # 👈 tells Render to run inside backend/
+    rootDir: backend
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
@@ -15,7 +15,10 @@ services:
       - key: DEBUG
         value: "False"
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: redis
+          name: myredis
+          property: connectionString
       - key: DATABASE_URL
         fromDatabase:
           name: mydb
@@ -25,16 +28,22 @@ services:
     name: celery-worker
     env: python
     plan: free
-    rootDir: backend     # 👈 run worker from backend/
+    rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: celery -A core worker --loglevel=info
     envVars:
       - key: DJANGO_SECRET_KEY
-        sync: false
+        fromService:
+          type: web
+          name: django-web
+          envVarKey: DJANGO_SECRET_KEY
       - key: DEBUG
         value: "False"
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: redis
+          name: myredis
+          property: connectionString
       - key: DATABASE_URL
         fromDatabase:
           name: mydb
@@ -44,16 +53,22 @@ services:
     name: celery-beat
     env: python
     plan: free
-    rootDir: backend  
+    rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: celery -A core beat --loglevel=info
     envVars:
       - key: DJANGO_SECRET_KEY
-        sync: false
+        fromService:
+          type: web
+          name: django-web
+          envVarKey: DJANGO_SECRET_KEY
       - key: DEBUG
         value: "False"
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: redis
+          name: myredis
+          property: connectionString
       - key: DATABASE_URL
         fromDatabase:
           name: mydb
@@ -61,4 +76,8 @@ services:
 
 databases:
   - name: mydb
+    plan: free
+
+  - type: redis
+    name: myredis
     plan: free
