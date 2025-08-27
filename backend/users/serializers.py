@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from decimal import Decimal
+from django.conf import settings
+
 from .models import (
     CustomUser, Property, PropertyImage,
     SavedProperty, MeetingRequest, Notification,
@@ -20,9 +22,8 @@ class LandlordProfileSerializer(serializers.ModelSerializer):
 
     def get_profile_pic(self, obj):
         if obj.profile_pic:
-            request = self.context.get('request')
-            if request is not None:
-                return request.build_absolute_uri(obj.profile_pic.url)
+            # Return a plain URL string (not a CloudinaryResource)
+            return obj.profile_pic.url
         return None
 
 
@@ -30,6 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
     saved_properties = serializers.SerializerMethodField()
     notifications_count = serializers.SerializerMethodField()
     unread_notifications_count = serializers.SerializerMethodField()
+    profile_pic = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -39,6 +41,11 @@ class UserSerializer(serializers.ModelSerializer):
             'saved_properties', 'phone', 'notifications_count', 'unread_notifications_count'
         ]
 
+    def get_profile_pic(self, obj):
+        if obj.profile_pic:
+            return obj.profile_pic.url
+        return None
+
     def get_saved_properties(self, user):
         """
         Efficiently return saved properties. Views may set `user._prefetched_saved`
@@ -46,7 +53,10 @@ class UserSerializer(serializers.ModelSerializer):
         """
         saved = getattr(user, "_prefetched_saved", None)
         if saved is None:
-            saved = SavedProperty.objects.filter(user=user).select_related("property__user").prefetch_related("property__images")
+            saved = (SavedProperty.objects
+                     .filter(user=user)
+                     .select_related("property__user")
+                     .prefetch_related("property__images"))
         return {
             "count": saved.count(),
             "properties": PropertySerializer(
@@ -65,6 +75,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
+    profile_pic = serializers.ImageField(required=False)
 
     class Meta:
         model = CustomUser
@@ -122,9 +133,17 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 
 class PropertyImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = PropertyImage
         fields = ['id', 'image']
+
+    def get_image(self, obj):
+        if obj.image:
+            # Return string URL
+            return obj.image.url
+        return None
 
 
 class PropertySerializer(serializers.ModelSerializer):
@@ -193,6 +212,7 @@ class PropertyCreateSerializer(serializers.ModelSerializer):
 
 
 class SavedPropertySerializer(serializers.ModelSerializer):
+    # Keep as-is functionally; property is read-only nested serializer
     property = PropertySerializer(read_only=True, context={'request': serializers.CurrentUserDefault()})
 
     class Meta:
@@ -240,9 +260,8 @@ class MeetingRequestSerializer(serializers.ModelSerializer):
 
     def get_requester_profile_pic(self, obj):
         if obj.user and obj.user.profile_pic:
-            request = self.context.get('request')
-            if request is not None:
-                return request.build_absolute_uri(obj.user.profile_pic.url)
+            # Return plain URL; do not use cloudinary_url() nor .name
+            return obj.user.profile_pic.url
         return None
 
     def validate(self, data):
@@ -288,7 +307,10 @@ class NotificationSerializer(serializers.ModelSerializer):
     def get_related_meeting_summary(self, obj):
         if obj.notification_type in ['meeting_request', 'meeting_response'] and obj.related_object_id:
             try:
-                meeting = MeetingRequest.objects.select_related("property").only("id", "proposed_time_slot", "status", "property__title").get(id=obj.related_object_id)
+                meeting = (MeetingRequest.objects
+                           .select_related("property")
+                           .only("id", "proposed_time_slot", "status", "property__title")
+                           .get(id=obj.related_object_id))
                 return {
                     'id': meeting.id,
                     'proposed_time_slot': meeting.proposed_time_slot,
@@ -302,7 +324,10 @@ class NotificationSerializer(serializers.ModelSerializer):
     def get_related_property_title(self, obj):
         if obj.notification_type in ['meeting_request', 'meeting_response'] and obj.related_object_id:
             try:
-                meeting = MeetingRequest.objects.select_related("property").only("property__title").get(id=obj.related_object_id)
+                meeting = (MeetingRequest.objects
+                           .select_related("property")
+                           .only("property__title")
+                           .get(id=obj.related_object_id))
                 return meeting.property.title
             except MeetingRequest.DoesNotExist:
                 return None
@@ -326,9 +351,17 @@ class AnnouncementSerializer(serializers.Serializer):
 
 
 class EventPlaceImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = EventPlaceImage
         fields = ['id', 'image']
+
+    def get_image(self, obj):
+        if obj.image:
+            # Return string URL, not CloudinaryResource
+            return obj.image.url
+        return None
 
 
 class SimpleEventBookingSerializer(serializers.ModelSerializer):
@@ -350,10 +383,11 @@ class EventPlaceDetailSerializer(serializers.ModelSerializer):
 
     def get_bookings(self, obj):
         current_date = timezone.now().date()
-        bookings = obj.bookings.filter(
-            booking_date__gte=current_date,
-            status__in=['pending', 'confirmed']
-        ).only("booking_date", "start_time", "end_time", "status").order_by('booking_date', 'start_time')
+        bookings = (obj.bookings
+                    .filter(booking_date__gte=current_date,
+                            status__in=['pending', 'confirmed'])
+                    .only("booking_date", "start_time", "end_time", "status")
+                    .order_by('booking_date', 'start_time'))
         return SimpleEventBookingSerializer(bookings, many=True).data
 
 

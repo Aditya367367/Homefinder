@@ -10,6 +10,10 @@ import { useUpdateEventPlace } from "../services/UpdateEventPlace.services";
 
 import PropertyFormModal from "./PropertyFormModal";
 import EventPlaceFormModal from "./EventPlaceFormModal";
+import Placeholder from "../../../assets/features2.png"
+
+
+const LOCAL_PLACEHOLDER_IMAGE = Placeholder;
 
 const statusColor = {
   Active: "text-green-400",
@@ -28,7 +32,7 @@ const DeleteConfirmationModal = ({ item, onClose, onConfirm }) => {
         <h3 className="text-xl font-semibold text-white mb-4">Confirm Deletion</h3>
         <p className="text-gray-300 mb-6">
           Are you sure you want to delete the{" "}
-          <span className="font-bold capitalize">{item.listing_type.replace("_", " ")}</span>:{" "}
+          <span className="font-bold capitalize">{item.listing_type?.replace("_", " ")}</span>:{" "}
           <span className="font-bold">{item.display_name}</span>? This action cannot be undone.
         </p>
 
@@ -42,7 +46,7 @@ const DeleteConfirmationModal = ({ item, onClose, onConfirm }) => {
           <button
             onClick={() => {
               onConfirm(item.id, item.listing_type);
-              onClose(); 
+              onClose();
             }}
             className="px-5 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
           >
@@ -58,8 +62,8 @@ const MyListingsTable = ({ listings = [], isLoading }) => {
   const [currentListing, setCurrentListing] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [filterType, setFilterType] = useState("all");
-  const [deleteConfirmationDetails, setDeleteConfirmationDetails] = useState(null); 
-  
+  const [deleteConfirmationDetails, setDeleteConfirmationDetails] = useState(null);
+
   const { deleteProperty, isLoading: isDeletingProperty } = useDeleteProperty();
   const { updatePropertyAsync, isLoading: isUpdatingProperty } = useUpdateProperty();
 
@@ -71,12 +75,10 @@ const MyListingsTable = ({ listings = [], isLoading }) => {
     setEditModalOpen(true);
   };
 
-
   const handleDeleteClick = (item) => {
     setDeleteConfirmationDetails(item);
   };
 
- 
   const executeDelete = async (id, type) => {
     try {
       if (type === "property") {
@@ -84,7 +86,6 @@ const MyListingsTable = ({ listings = [], isLoading }) => {
       } else if (type === "event_place") {
         await deleteEventPlace(id);
       }
-      // Show success toast after successful deletion
       toast.success(
         `${type.replace("_", " ").charAt(0).toUpperCase() + type.replace("_", " ").slice(1)} deleted successfully!`
       );
@@ -94,7 +95,7 @@ const MyListingsTable = ({ listings = [], isLoading }) => {
         err.response?.data?.detail || err.message || `An unknown error occurred while deleting ${type}.`;
       toast.error(`Failed to delete listing: ${errorMessage}`);
     } finally {
-      setDeleteConfirmationDetails(null); // Always close the confirmation modal
+      setDeleteConfirmationDetails(null);
     }
   };
 
@@ -193,62 +194,65 @@ const MyListingsTable = ({ listings = [], isLoading }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredListings.map((item) => (
-                <tr
-                  key={`${item.id}-${item.listing_type}`}
-                  className="border-t border-gray-800 hover:bg-[#1a1d22] transition duration-200"
-                >
-                  <td className="py-3 pr-4 flex items-center gap-3">
-                    <img
-                      src={item.main_image || "https://via.placeholder.com/80x80?text=No+Image"}
-                      alt={item.display_name}
-                      className="w-12 h-12 rounded-md object-cover border border-gray-600 shadow-sm"
-                    />
-                    <span className="text-white font-medium">
-                      {item.listing_type === "event_place" && (
-                        <span className="text-blue-400 font-bold mr-1">Ev</span>
-                      )}
-                      {item.display_name}
-                    </span>
-                  </td>
-                  <td className="py-3 pr-4 capitalize text-gray-300">
-                    {item.listing_type?.replace("_", " ")}
-                  </td>
-                  <td className="py-3 pr-4 text-gray-300">{item.location}</td>
-                  <td className="py-3 pr-4 text-gray-300">{item.display_price}</td>
-                  <td
-                    className={`py-3 pr-4 font-semibold ${
-                      statusColor[item.status] || "text-gray-400"
-                    }`}
+              {filteredListings.map((item) => {
+                const imageUrl = item.main_image || LOCAL_PLACEHOLDER_IMAGE;
+                
+                return (
+                  <tr
+                    key={`${item.id}-${item.listing_type}`}
+                    className="border-t border-gray-800 hover:bg-[#1a1d22] transition duration-200"
                   >
-                    {item.status || "N/A"}
-                  </td>
-                  <td className="py-3 pr-4 flex justify-end gap-3">
-                    <button
-                      onClick={() => handleEditClick(item)}
-                      className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs"
-                      title="Edit"
-                      disabled={isUpdatingProperty || isUpdatingEventPlace}
+                    <td className="py-3 pr-4 flex items-center gap-3">
+                      <img
+                        src={imageUrl}
+                        alt={item.display_name}
+                        className="w-12 h-12 rounded-md object-cover border border-gray-600 shadow-sm"
+                      />
+                      <span className="text-white font-medium">
+                        {item.listing_type === "event_place" && (
+                          <span className="text-blue-400 font-bold mr-1">Ev</span>
+                        )}
+                        {item.display_name}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 capitalize text-gray-300">
+                      {item.listing_type?.replace("_", " ")}
+                    </td>
+                    <td className="py-3 pr-4 text-gray-300">{item.location}</td>
+                    <td className="py-3 pr-4 text-gray-300">{item.display_price}</td>
+                    <td
+                      className={`py-3 pr-4 font-semibold ${
+                        statusColor[item.status] || "text-gray-400"
+                      }`}
                     >
-                      <Pencil size={14} /> Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(item)} // Pass the entire item to the handler
-                      className="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-xs"
-                      title="Delete"
-                      disabled={isDeletingProperty || isDeletingEventPlace}
-                    >
-                      <Trash size={14} /> Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                      {item.status || "N/A"}
+                    </td>
+                    <td className="py-3 pr-4 flex justify-end gap-3">
+                      <button
+                        onClick={() => handleEditClick(item)}
+                        className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs"
+                        title="Edit"
+                        disabled={isUpdatingProperty || isUpdatingEventPlace}
+                      >
+                        <Pencil size={14} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(item)}
+                        className="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-xs"
+                        title="Delete"
+                        disabled={isDeletingProperty || isDeletingEventPlace}
+                      >
+                        <Trash size={14} /> Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Modals for Editing (existing logic) */}
       {editModalOpen && currentListing && currentListing.listing_type === "property" && (
         <PropertyFormModal
           property={currentListing}
@@ -264,12 +268,11 @@ const MyListingsTable = ({ listings = [], isLoading }) => {
         />
       )}
 
-      {/* Render the DeleteConfirmationModal when deleteConfirmationDetails is set */}
       {deleteConfirmationDetails && (
         <DeleteConfirmationModal
           item={deleteConfirmationDetails}
-          onClose={() => setDeleteConfirmationDetails(null)} 
-          onConfirm={executeDelete} 
+          onClose={() => setDeleteConfirmationDetails(null)}
+          onConfirm={executeDelete}
         />
       )}
     </div>

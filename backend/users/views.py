@@ -28,10 +28,10 @@ from core.cache import cache_response, cache_view, invalidate_cache_patterns
 from core.cache import cache_key_from_request as versioned_cache_key
 from core.cache import bump_cache_group_version
 import requests
-
+from cloudinary.models import CloudinaryResource
 from .models import (
     Property, SavedProperty, MeetingRequest, Notification, CustomUser,
-    EventPlace, EventBooking
+    EventPlace, EventBooking , PropertyImage ,EventPlaceImage
 )
 from .serializers import (
     RegisterSerializer,
@@ -71,7 +71,7 @@ CACHE_TTL_MEDIUM = getattr(settings, "API_CACHE_TTL_MEDIUM", 120)   # lists
 CACHE_TTL_LONG   = getattr(settings, "API_CACHE_TTL_LONG", 300)     # details
 
 def cache_key_from_request(prefix: str, request) -> str:
-    # Delegate to versioned cache key helper so status changes reflect immediately
+    
     return versioned_cache_key(prefix, request)
 
 
@@ -1133,7 +1133,6 @@ class ListUserListingsView(APIView):
     throttle_classes = [UserBurstThrottle, UserSustainedThrottle]
 
     def get(self, request, *args, **kwargs):
-        # Per-user short cache
         key = f"user:listings:{request.user.id}"
         cached = cache.get(key)
         if cached:
@@ -1141,8 +1140,7 @@ class ListUserListingsView(APIView):
 
         user = request.user
 
-        # Annotate first image via subquery to avoid heavy prefetch/serialization
-        from .models import PropertyImage, EventPlaceImage
+        # Annotate first image via subquery
         first_prop_image = Subquery(
             PropertyImage.objects.filter(property=OuterRef('pk')).values('image')[:1]
         )
@@ -1176,25 +1174,32 @@ class ListUserListingsView(APIView):
         )
         for e in event_places_data:
             e['listing_type'] = 'event_place'
-            # Keep 'name' and also expose 'title' for UI consistency
             nm = e.get('name')
             if nm is not None:
                 e['title'] = nm
             e['status'] = 'Active' if e.get('is_available_now') else 'Inactive'
 
         all_listings = properties_data + event_places_data
-
-        # Normalize for serialization (avoid Decimal/datetime in cache)
+        
+        # Normalize for serialization
         for item in all_listings:
+            first_image = item.get('first_image')
+            # Check if it's a CloudinaryResource object and get its URL
+            if isinstance(first_image, CloudinaryResource):
+                item['first_image'] = first_image.url  # Use .url to get the full URL
+            else:
+                
+                item['first_image'] = first_image
+            
             if 'price' in item and item['price'] is not None:
                 try:
                     item['price'] = float(item['price'])
-                except Exception:
+                except (ValueError, TypeError):
                     item['price'] = None
             if 'price_per_hour' in item and item['price_per_hour'] is not None:
                 try:
                     item['price_per_hour'] = float(item['price_per_hour'])
-                except Exception:
+                except (ValueError, TypeError):
                     item['price_per_hour'] = None
             if 'created_at' in item and item['created_at'] is not None:
                 try:
@@ -1233,6 +1238,7 @@ class GlobalSearchView(generics.ListAPIView):
                     Q(description__icontains=query) |
                     Q(property_type__icontains=query)
                 )
+                .filter(status="Active")  
             )
 
             event_places_queryset = (
@@ -1245,6 +1251,7 @@ class GlobalSearchView(generics.ListAPIView):
                     Q(description__icontains=query) |
                     Q(category__icontains=query)
                 )
+                .filter(status="Active")
             )
 
         properties_data = PropertySerializer(properties_queryset, many=True, context={"request": request}).data

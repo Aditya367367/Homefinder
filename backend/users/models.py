@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
+from cloudinary.models import CloudinaryField  # ✅ Cloudinary import
 
 
 class CustomUserManager(BaseUserManager):
@@ -29,7 +30,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=15, blank=True, null=True)
     user_type = models.CharField(max_length=20, default='normal')
-    profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    profile_pic = CloudinaryField('image', folder='profile_pics', null=True, blank=True)  # ✅ Cloudinary
     bio = models.TextField(blank=True)
     gender = models.CharField(
         max_length=10,
@@ -109,7 +110,7 @@ class Property(models.Model):
 
 class PropertyImage(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='images', db_index=True)
-    image = models.ImageField(upload_to='property_images/')
+    image = CloudinaryField('image', folder='property_images')  # ✅ Cloudinary
 
     def __str__(self):
         return f"Image for: {self.property.title}"
@@ -233,7 +234,7 @@ class EventPlace(models.Model):
 
 class EventPlaceImage(models.Model):
     event_place = models.ForeignKey(EventPlace, on_delete=models.CASCADE, related_name='images', db_index=True)
-    image = models.ImageField(upload_to='event_place_images/')
+    image = CloudinaryField('image', folder='event_place_images')  # ✅ Cloudinary
 
     def __str__(self):
         return f"Image for: {self.event_place.name}"
