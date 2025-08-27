@@ -11,7 +11,7 @@ python manage.py migrate --noinput
 
 # Create superuser if the environment variable is set
 if [[ $CREATE_SUPERUSER ]]; then
-  python manage.py createsuperuser --no-input
+  python manage.py createsuperuser --noinput
   echo "Superuser creation command finished."
 fi
 
