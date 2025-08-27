@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Exit on error
+# Exit on any error
 set -o errexit
 
 # Install dependencies
@@ -10,9 +10,10 @@ pip install -r requirements.txt
 python manage.py migrate --noinput
 
 # Create superuser if the environment variable is set
-if [[ $CREATE_SUPERUSER ]]; then
+if [ "$CREATE_SUPERUSER" = "true" ]; then
+  echo "Creating superuser..."
   python manage.py createsuperuser --noinput
-  echo "Superuser creation command finished."
+  echo "Superuser created successfully."
 fi
 
 # Collect static files
