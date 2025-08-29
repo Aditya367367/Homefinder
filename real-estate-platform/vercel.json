@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/admin/(.*)",
+      "destination": "${process.env.REACT_APP_MEDIA_URL}/admin/$1"
+    }
+  ]
+}
