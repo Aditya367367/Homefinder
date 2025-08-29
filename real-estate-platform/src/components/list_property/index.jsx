@@ -6,56 +6,62 @@ import DescriptionSection from "./components/DescriptionSection";
 import ContactInfoSection from "./components/ContactInfoSection";
 import SubmitButtons from "./components/SubmitButtons";
 import PreviewPage from "./components/PreviewPage";
-import { getAccessToken } from "../utils/authTokenStore"; 
+import { getAccessToken } from "../utils/authTokenStore";
 import { Link } from "react-router-dom";
-import { useCreateProperty } from "../list_property/services/CreateProperty.services"; 
+import { useCreateProperty } from "../list_property/services/CreateProperty.services";
+import FullScreenLoader from "../common-warnings/FullScreenLoader";
+import SuccessModal from "../common-warnings/SuccessModal";
 
 const ListPropertyPage = () => {
-  
-  const initialFormData = useMemo(() => ({
-    title: "",
-    location: "",
-    price: "",
-    type: "Buy",
-    furnished: "Furnished",
-    property_type: "Flat",
-    bedrooms: "",
-    bathrooms: "",
-    area: "",
-    description: "",
-    contact_name: "",
-    contact_phone: "",
-    contact_email: "",
-    images: [],
-  }), []);
+  const initialFormData = useMemo(
+    () => ({
+      title: "",
+      location: "",
+      price: "",
+      type: "Buy",
+      furnished: "Furnished",
+      property_type: "Flat",
+      bedrooms: "",
+      bathrooms: "",
+      area: "",
+      description: "",
+      contact_name: "",
+      contact_phone: "",
+      contact_email: "",
+      images: [],
+    }),
+    []
+  );
 
   const [formData, setFormData] = useState(initialFormData);
   const [showPreview, setShowPreview] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     createProperty,
     isCreating,
     isCreated,
     isCreateError,
-    
+    resetCreate,
   } = useCreateProperty();
 
- 
   useEffect(() => {
     const token = getAccessToken();
     setIsLoggedIn(!!token);
-  }, []); 
+  }, []);
+
   useEffect(() => {
     if (isCreated) {
       setFormData(initialFormData);
-      setShowPreview(false);       
+      setShowPreview(false);
+      setIsSubmitting(false);
     }
-  }, [isCreated, initialFormData]); 
+  }, [isCreated, initialFormData]);
 
   const handleSubmit = () => {
-    
     console.log("ListPropertyPage: handleSubmit initiated.");
+    setIsSubmitting(true);
 
     const formPayload = new FormData();
     formPayload.append("title", formData.title);
@@ -72,28 +78,26 @@ const ListPropertyPage = () => {
     formPayload.append("contact_phone", formData.contact_phone);
     formPayload.append("contact_email", formData.contact_email);
 
-    
     formData.images.forEach((imgObj) => {
       formPayload.append("images", imgObj.file);
     });
 
-   
     for (let pair of formPayload.entries()) {
-      console.log(pair[0]+ ': ' + pair[1]);
+      console.log(pair[0] + ": " + pair[1]);
     }
 
-    
     createProperty(formPayload);
-    console.log("ListPropertyPage: createProperty (mutate function) called.");
+    console.log("ListPropertyPage: createProperty called.");
   };
 
-  
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0f1115] px-4">
         <div className="bg-[#1f2227] text-white p-6 rounded-md shadow-md w-full max-w-md text-center">
           <h2 className="text-xl font-semibold mb-4">Please Login to Continue</h2>
-          <p className="text-gray-400 mb-6">You must be logged in to list a property.</p>
+          <p className="text-gray-400 mb-6">
+            You must be logged in to list a property.
+          </p>
           <Link to="/login">
             <button className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-md text-white font-medium">
               Go to Login
@@ -104,19 +108,25 @@ const ListPropertyPage = () => {
     );
   }
 
- 
+  // Show full-screen loader when property is being created
+  if (isCreating || isSubmitting) {
+    return <FullScreenLoader message="Submitting your property..." />;
+  }
+
   return (
     <div className="bg-[#0f1115] text-white min-h-screen pt-24 px-4 md:px-8 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">List Your Property</h1>
 
-     
+      {/* Success Modal */}
       {isCreated && (
-        <div className="mb-6 p-4 bg-green-700 text-white rounded-md shadow">
-          <span className="font-semibold">Success:</span> Property listed successfully!
-        </div>
+        <SuccessModal
+          title="Property Created!"
+          message="Your property has been successfully listed."
+          onClose={() => resetCreate()}
+        />
       )}
 
-     
+      {/* Error Alert */}
       {isCreateError && (
         <div className="mb-6 p-4 bg-red-700 text-white rounded-md shadow">
           <span className="font-semibold">Error:</span> Failed to list property. Please check your details and try again.
@@ -128,7 +138,7 @@ const ListPropertyPage = () => {
           formData={formData}
           onEdit={() => setShowPreview(false)}
           onSubmit={handleSubmit}
-          isSubmitting={isCreating} 
+          isSubmitting={isCreating || isSubmitting}
         />
       ) : (
         <>
@@ -140,7 +150,7 @@ const ListPropertyPage = () => {
           <SubmitButtons
             onPreview={() => setShowPreview(true)}
             onSubmit={handleSubmit}
-            isSubmitting={isCreating} 
+            isSubmitting={isCreating || isSubmitting}
           />
         </>
       )}

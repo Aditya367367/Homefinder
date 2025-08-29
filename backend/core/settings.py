@@ -25,6 +25,7 @@ if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
 # ---------------------
 INSTALLED_APPS = [
     # Django
+    "jazzmin",
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles',
 
@@ -324,4 +325,13 @@ LOGGING = {
         'django.db.backends': {'level': 'WARNING'},  
         'django.request': {'level': 'WARNING'},
     }
+}
+
+PROJECT_INFO = {
+    "name": "Real Estate Platform",
+    "version": "v1.0",
+    "owner": "Aditya Chauhan",
+    "email": "suryachauhan367367@gmail.com",
+    "linkedin": "https://www.linkedin.com/in/aditya-chauhan-1b1a95228",
+    "copyright": "© 2025 Aditya Chauhan. All rights reserved."
 }

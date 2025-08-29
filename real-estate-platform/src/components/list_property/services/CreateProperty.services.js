@@ -3,19 +3,24 @@ import { useSnackbar } from "notistack";
 import api from "../../utils/axiosInstance";
 
 const createPropertyAPI = async (propertyData) => {
-  const response = await api.post("/auth/property/create/", propertyData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-  return response.data;
+  try {
+    const response = await api.post("/auth/property/create/", propertyData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }); 
+    return response.data;
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
 };
 
 export const useCreateProperty = () => {
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
 
-  const { mutate, isLoading, isSuccess, isError, error } = useMutation({
+  const { mutate, isLoading, isSuccess, isError, error, reset } = useMutation({
     mutationFn: createPropertyAPI,
     onSuccess: () => {
       enqueueSnackbar("Property created successfully!", { variant: "success" });
@@ -38,5 +43,6 @@ export const useCreateProperty = () => {
     isCreated: isSuccess,
     isCreateError: isError,
     createError: error,
+    resetCreate: reset,
   };
 };

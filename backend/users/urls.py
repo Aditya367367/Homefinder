@@ -62,6 +62,7 @@ from .views import (
     
     #gloablsearch
     GlobalSearchView,
+    ProjectInfoView
 )
 
 urlpatterns = [
@@ -129,4 +130,5 @@ urlpatterns = [
 
     #globalsearch
     path('search-all/', GlobalSearchView.as_view(), name='global-search'),
+    path('owner/', ProjectInfoView.as_view(), name='project-info')
 ]

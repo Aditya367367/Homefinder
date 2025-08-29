@@ -25,7 +25,7 @@
   import EventPlacePage from './pages/eventplace_page';
   import MyBookingsPage1 from './pages/mybookings';
   import { GoogleOAuthProvider } from '@react-oauth/google';
-
+  // import AdminPage from './pages/admin';
 
   function App() {
   const [loading, setLoading] = useState(true);
@@ -65,7 +65,7 @@
           <Route path="/spaces/:id" element={<EventPlaceDetailPageWrapper />} />
           <Route path='/spaces' element={<EventPlacePage/>}/>
           <Route path='/My-Bookings' element={<MyBookingsPage1/>}/>
-      
+          {/* <Route path="/admin" element={<AdminPage />} /> */}
         </Routes>
         </div>
       </BrowserRouter>
