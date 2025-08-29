@@ -58,4 +58,5 @@ tzdata==2025.2
 urllib3==2.5.0
 vine==5.1.0
 wcwidth==0.2.13
+uvicorn==0.30.6
 whitenoise==6.9.0
