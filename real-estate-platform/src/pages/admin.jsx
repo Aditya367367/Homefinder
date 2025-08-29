@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import FullScreenLoader from "../components/common-warnings/FullScreenLoader";
 
 const AdminRedirect = () => {
   useEffect(() => {
@@ -12,7 +13,7 @@ const AdminRedirect = () => {
 
   return (
     <div>
-      <p>Redirecting to admin panel…</p>
+      <FullScreenLoader message="Redirecting to Admin Panel..." />
     </div>
   );
 };
